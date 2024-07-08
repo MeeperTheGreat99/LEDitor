@@ -7,6 +7,7 @@
 bool running = true;
 int majorVersion = 0;
 int minorVersion = 1;
+int patchVersion = 0;
 
 HINSTANCE ghInstance = nullptr;
 HWND ghWnd = nullptr;

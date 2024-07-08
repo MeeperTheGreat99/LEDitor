@@ -57,8 +57,9 @@ void display_update() {
 
 	extern int majorVersion;
 	extern int minorVersion;
+	extern int patchVersion;
 	char label[64];
-	sprintf(label, "LEDitor v%d.%d", majorVersion, minorVersion);
+	sprintf(label, "LEDitor v%d.%d.%d", majorVersion, minorVersion, patchVersion);
 	set_text_font(defaultFont);
 	int textWidth = get_text_width(label);
 	draw_text(label, displayWidth - textWidth - 8, 8);
