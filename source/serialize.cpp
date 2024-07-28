@@ -3,6 +3,8 @@
 #include <fstream>
 #include <string>
 
+#define SERIALIZE_FILE_VERSION 1
+
 extern HWND ghWnd;
 
 void serialize_save_image(int width, int height, unsigned char* data) {
@@ -11,7 +13,7 @@ void serialize_save_image(int width, int height, unsigned char* data) {
 
     OPENFILENAMEA ofn = {0};
     ofn.lStructSize = sizeof(ofn);
-    ofn.lpstrFilter = "LEDitor Image File (*.led)\0*.led\0";
+    ofn.lpstrFilter = "LEDitor Image Files (*.led)\0*.led\0";
     ofn.lpstrDefExt = "led";
     ofn.lpstrFile = filename;
     ofn.nMaxFile = sizeof(filename);
@@ -27,7 +29,10 @@ void serialize_save_image(int width, int height, unsigned char* data) {
 		return;
 	}
 
+    int version = SERIALIZE_FILE_VERSION;
     file.write("led ", 4);
+    file.write("ver ", 4);
+    file.write((char*)&version, sizeof(int));
 	file.write((char*)&width, sizeof(int));
 	file.write((char*)&height, sizeof(int));
 	file.write((char*)data, width * height * 3);
@@ -39,7 +44,7 @@ void serialize_save_image(int width, int height, unsigned char* data) {
 
 	file.close();
 
-	MessageBoxA(nullptr, "Image saved successfully.", "Info", MB_OK | MB_ICONINFORMATION);
+	MessageBoxA(nullptr, "File saved successfully.", "Info", MB_OK | MB_ICONINFORMATION);
 }
 
 void serialize_load_image(int* width, int* height, unsigned char** data) {
@@ -50,15 +55,14 @@ void serialize_load_image(int* width, int* height, unsigned char** data) {
 
     OPENFILENAMEA ofn = {0};
     ofn.lStructSize = sizeof(ofn);
-    ofn.lpstrFilter = "LEDitor Image File (*.led)\0*.led\0";
+    ofn.lpstrFilter = "LEDitor Image Files (*.led)\0*.led\0";
     ofn.lpstrDefExt = "led";
     ofn.lpstrFile = filename;
     ofn.nMaxFile = sizeof(filename);
     ofn.lpstrInitialDir = ".";
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-    if (!GetOpenFileNameA(&ofn)) {
+    if (!GetOpenFileNameA(&ofn))
         return;
-    }
 
 	std::ifstream file(ofn.lpstrFile, std::ios::binary);
 	if (!file.is_open()) {
@@ -69,9 +73,22 @@ void serialize_load_image(int* width, int* height, unsigned char** data) {
     char header[4];
     file.read(header, 4);
     if (header[0] != 'l' || header[1] != 'e' || header[2] != 'd' || header[3] != ' ') {
-        MessageBoxA(nullptr, "That is not a valid LEDitor image.", "Joyous occasion", MB_OK | MB_ICONERROR);
+        MessageBoxA(nullptr, "That is not a valid LEDitor image file.", "Joyous occasion", MB_OK | MB_ICONERROR);
         return;
     }
+
+    int version = 1;
+
+    char versionheader[4];
+    file.read(versionheader, 4);
+    if (versionheader[0] != 'v' || versionheader[1] != 'e' || versionheader[2] != 'r' || versionheader[3] != ' ') {
+        MessageBoxA(nullptr, "That file has an outdated format; please save it again when possible.", "Info", MB_OK | MB_ICONINFORMATION);
+        version = 0;
+        file.seekg(-4, std::ios::cur);
+    }
+
+    if (version > 0)
+        file.read((char*)&version, sizeof(int));
 
 	file.read((char*)width, sizeof(int));
 	file.read((char*)height, sizeof(int));
@@ -128,7 +145,7 @@ void serialize_export_array1d(int width, int height, unsigned char* data) {
     SetClipboardData(CF_TEXT, hMem);
     CloseClipboard();
 
-    MessageBoxA(nullptr, "Copied 1D Array initialization code to clipboard. Note: Layout has three 0-255 color components per pixel.", "Info", MB_OK | MB_ICONINFORMATION);
+    MessageBoxA(nullptr, "Copied 1D Array initialization code to clipboard.", "Info", MB_OK | MB_ICONINFORMATION);
 }
 
 void serialize_export_array2d(int width, int height, unsigned char* data) {
@@ -170,5 +187,5 @@ void serialize_export_array2d(int width, int height, unsigned char* data) {
     SetClipboardData(CF_TEXT, hMem);
     CloseClipboard();
 
-    MessageBoxA(nullptr, "Copied 2D Array initialization code to clipboard. Note: Layout is [row][col] with three 0-255 color components per pixel.", "Info", MB_OK | MB_ICONINFORMATION);
+    MessageBoxA(nullptr, "Copied 2D Array initialization code to clipboard.", "Info", MB_OK | MB_ICONINFORMATION);
 }

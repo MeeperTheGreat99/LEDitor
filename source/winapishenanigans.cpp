@@ -5,6 +5,8 @@
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 bool quitProgram = false;
+extern int mainWidth;
+extern int mainHeight;
 extern HWND ghWnd;
 extern HINSTANCE ghInstance;
 
@@ -19,7 +21,7 @@ void winapi_initialize() {
 	RegisterClassExA(&wc);
 
 	// adjust actual window size so the client area size is exactly as desired
-	RECT windowrect = {0, 0, 640, 480};
+	RECT windowrect = {0, 0, mainWidth, mainHeight};
 	DWORD style = WS_OVERLAPPEDWINDOW;
 	AdjustWindowRectEx(&windowrect, style, FALSE, 0);
 
@@ -61,12 +63,19 @@ bool winapi_run() {
 	while (PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE)) {
 		TranslateMessage(&msg);
 		DispatchMessageA(&msg);
+		
 	}
 
 	return !quitProgram;
 }
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	TRACKMOUSEEVENT trackMouse = {0};
+	trackMouse.cbSize = sizeof(TRACKMOUSEEVENT);
+	trackMouse.dwFlags = TME_LEAVE;
+	trackMouse.hwndTrack = ghWnd;
+	trackMouse.dwHoverTime = HOVER_DEFAULT;
+
 	switch (uMsg) {
 		case WM_CLOSE:
 			quitProgram = true;
@@ -75,19 +84,27 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		case WM_ERASEBKGND:
 			return 1;
 
-		case WM_SIZE: {
-			int width = LOWORD(lParam);
-			int height = HIWORD(lParam);
-			display_resize(width, height);
-			uiface_resize(width, height);
+		case WM_SIZE:
+			mainWidth = LOWORD(lParam);
+			mainHeight = HIWORD(lParam);
+			display_resize(mainWidth, mainHeight);
+			uiface_resize(mainWidth, mainHeight);
+			return 0;
+
+		case WM_MOUSEMOVE: {
+			int x = (int)LOWORD(lParam);
+			int y = (int)HIWORD(lParam);
+			if (x > 32767)
+				x -= 65536;
+			if (y > 32767)
+				y -= 65536;
+			uiface_mouse_position(x, y);
+			TrackMouseEvent(&trackMouse);
 			return 0;
 		}
 
-		case WM_MOUSEMOVE:
-			uiface_mouse_position(LOWORD(lParam), HIWORD(lParam));
-			return 0;
-
 		case WM_LBUTTONDOWN:
+			SetCapture(ghWnd);
 			uiface_mouse_buttons_down(MOUSE_LMB);
 			return 0;
 		case WM_RBUTTONDOWN:
@@ -104,6 +121,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 			return 0;
 
 		case WM_LBUTTONUP:
+			ReleaseCapture();
 			uiface_mouse_buttons_up(MOUSE_LMB);
 			return 0;
 		case WM_RBUTTONUP:
@@ -118,6 +136,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 			else
 				uiface_mouse_buttons_up(MOUSE_XMB2);
 			return 0;
+
+		case WM_KEYDOWN:
+			if (wParam == 'Z' && GetKeyState(VK_CONTROL))
+				uiface_undo();
 	}
 
 	return DefWindowProcA(hWnd, uMsg, wParam, lParam);

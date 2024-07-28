@@ -62,7 +62,7 @@ void display_update() {
 	sprintf(label, "LEDitor v%d.%d.%d", majorVersion, minorVersion, patchVersion);
 	set_text_font(defaultFont);
 	int textWidth = get_text_width(label);
-	draw_text(label, displayWidth - textWidth - 8, 8);
+	draw_text(label, displayWidth - textWidth - 4, 2);
 
 	SwapBuffers(ghDC);
 }

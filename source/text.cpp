@@ -9,6 +9,7 @@ void draw_character(fontchar_t fontchar, int x, int y, unsigned char r, unsigned
 void draw_text_line(const char* text, int x, int y, bool centered, unsigned char r, unsigned char g, unsigned char b);
 
 Font* defaultFont = nullptr;
+Font* defaultSmFont = nullptr;
 Font* buttonFont = nullptr;
 
 static FT_Library freetype = nullptr;
@@ -75,6 +76,7 @@ fontchar_t Font::getCharacter(char ascii) {
 void text_initialize() {
 	FT_Init_FreeType(&freetype);
 	defaultFont = new Font("res/fonts/generic_condensed.ttf", 16);
+	defaultSmFont = new Font("res/fonts/generic_condensed.ttf", 13);
 	buttonFont = new Font("res/fonts/typewriter.ttf", 16);
 }
 
@@ -99,6 +101,40 @@ int get_text_width(const char* text) {
 	}
 
 	return width;
+}
+
+int get_text_width_max(const char* text) {
+	int i = 0;
+	char ch = text[i];
+	int width = 0;
+	int linewidth = 0;
+
+	while (ch) {
+		if (ch == '\n') {
+			if (linewidth > width)
+				width = linewidth;
+			linewidth = 0;
+		} else {
+			linewidth += currentFont->getCharacter(ch).adv;
+		}
+		ch = text[++i];
+	}
+
+	return linewidth > width ? linewidth : width;
+}
+
+int get_text_height(const char* text) {
+	int i = 0;
+	char ch = text[i];
+	int height = currentFont->getSize();
+
+	while (ch) {
+		if (ch == '\n')
+			height += currentFont->getSize();
+		ch = text[++i];
+	}
+
+	return height;
 }
 
 void draw_text(const char* text, int x, int y, bool centered, unsigned char r, unsigned char g, unsigned char b) {
